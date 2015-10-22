@@ -17,8 +17,8 @@ public class WebProxy {
 
 
             while(true) {
-                Socket client = null;
-                Socket server = null;
+                Socket client;
+                Socket servercd;
 
                 // accept an incoming request from the browser
                 client = connection.accept();
@@ -29,41 +29,47 @@ public class WebProxy {
 
 
                 StringBuilder builder = new StringBuilder();
-                InputStreamReader reader = new InputStreamReader(clientIn);
-                BufferedReader br = new BufferedReader(reader);
-                String msg = br.readLine();
+                int len = clientIn.read(req);
+                if(len > 0) {
 
-                while(msg != null) {
-                    builder.append(msg);
-                    builder.append(" ");
-                    msg = br.readLine();
+                    String str;
+                    str = new String(req, 0, len);
+
+                    final int HTTP_LENGTH = 7;
+                    System.out.println("REQUEST: " + "\n" + str + "\n");
+                    String replace = str.replace("\n", " ");
+                    String[] request = replace.split(" ");
+
+                    System.out.println("URL: " + request[1]);
+                    String hostName = request[4].trim();
+                    System.out.println("Host name: " + hostName);
+
+
+                    server = new Socket(hostName, 80);
+                    String dir = request[1].substring(HTTP_LENGTH + hostName.length());
+                    System.out.println("Directory: " + dir);
+
+                    //write request
+                    OutputStream serverOut = server.getOutputStream();
+                    serverOut.write(req, 0, len);
+
+                    //copy response
+                    InputStream outGoingStream = server.getInputStream();
+                    for(int length; (length = outGoingStream.read(req)) != -1;) {
+                        clientOut.write(req, 0, length);
+                    }
+
+                    clientIn.close();
+                    clientOut.close();
+                    serverOut.close();
+                    outGoingStream.close();
+
+                    server.close();
+
                 }
-
-                String str = builder.toString();
-
-                final int HTTP_LENGTH = 7;
-                System.out.println("Request: " + str + "\n");
-                String[] request = str.split(" ");
-                System.out.println("URL: " + request[1]);
-                System.out.println("Host Name: " + request[4]);
-                String hostName = request[4];
-
-                server = new Socket(hostName, 80);
-                String dir = "";
-                dir = request[1].substring(HTTP_LENGTH + hostName.length());
-                System.out.println("Directory: " + dir);
-
-                PrintWriter serv = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-                System.out.println("Sending get request to: " + url);
-                serv.println("GET " + dir + " HTTP/1.1");
-                for(int i = 0; i < httpreq.size(); i++) {
-
-                    serv.println(httpreq.get(i));
+                else {
+                    clientOut.close();
                 }
-                serv.println();
-                serv.flush();
-
-
             }
         }
         catch (IOException e) {

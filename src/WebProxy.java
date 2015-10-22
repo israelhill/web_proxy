@@ -49,6 +49,16 @@ public class WebProxy {
                     String dir = request[1].substring(HTTP_LENGTH + hostName.length());
                     System.out.println("Directory: " + dir);
 
+                    PrintWriter serv = new PrintWriter(new BufferedWriter(new OutputStreamWriter(server.getOutputStream())));
+                    System.out.println("Sending get request to: " + request[1]);
+                    serv.println("GET " + dir + " HTTP/1.1");
+                    for(int i = 0; i < req.length; i++) {
+
+                        serv.println(req[i]);
+                    }
+                    serv.println();
+                    serv.flush();
+
                     //write request
                     OutputStream serverOut = server.getOutputStream();
                     serverOut.write(req, 0, len);

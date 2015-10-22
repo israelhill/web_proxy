@@ -18,7 +18,7 @@ public class WebProxy {
 
             while(true) {
                 Socket client;
-                Socket servercd;
+                Socket server;
 
                 // accept an incoming request from the browser
                 client = connection.accept();

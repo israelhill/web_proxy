@@ -11,10 +11,11 @@ public class WebProxyThread extends Thread {
     //Overrides run() method from Java's Thread
     @Override
     public void run() {
-        Socket server = null;
 
         try {
             byte[] req = new byte[2048];
+
+            Socket server;
 
             // initialize an input and output stream for the client
             final InputStream clientIn = connectionSocket.getInputStream();
@@ -23,13 +24,16 @@ public class WebProxyThread extends Thread {
             // read the HTTP request from the client. Store in req array
             int requestLength = clientIn.read(req);
             if(requestLength > 0) {
+
                 //Store the HTTP Request as a string
                 String str = new String(req, 0, requestLength);
 
                 final int HTTP_LENGTH = 7;
+                //System.out.println("REQUEST: " + "\n" + str + "\n");
                 String replace = str.replace("\n", " ");
                 //Split the request at spaces
                 String[] request = replace.split(" ");
+
                 String hostName = request[4].trim();
 
                 //Create a new socket to talk to the host
@@ -38,11 +42,23 @@ public class WebProxyThread extends Thread {
                 String dir = request[1].substring(HTTP_LENGTH + hostName.length());
                 System.out.println("Directory: " + dir);
 
+                // write request for host
+                //PrintWriter serverRequest = new PrintWriter(new BufferedWriter(new OutputStreamWriter(server.getOutputStream())));
+                //System.out.println("Sending HTTP GET request to: " + request[1]);
+                //serverRequest.println("GET " + dir + " HTTP/1.1");
+                System.out.println("AGAIN, DIRECTORY: " + dir);
+
+                //Iterate over the HTTP request and create request to be sent to the host
+//                for (byte aReq : req) {
+//                    serverRequest.println(aReq);
+//                }
+//                serverRequest.println();
+//                serverRequest.flush();
+
                 //write request to the host via server socket
                 OutputStream serverOut = server.getOutputStream();
                 serverOut.write(req, 0, requestLength);
                 String requestToHost = new String(req, 0, requestLength);
-                serverOut.flush();
                 System.out.println("REQUEST TO HOST: " + "\n" + requestToHost);
 
                 //copy response from the host via server socket
@@ -51,14 +67,8 @@ public class WebProxyThread extends Thread {
 
                 // read HTTP response from the server socket and write it to the
                 // client socket so it can be passed back to the browser
-                try {
-                    while((length = responseStream.read(req)) != -1) {
-                        clientOut.write(req, 0, length);
-                        clientOut.flush();
-                    }
-                }
-                catch(IOException e) {
-
+                while((length = responseStream.read(req)) != -1) {
+                    clientOut.write(req, 0, length);
                 }
 
                 // close sockets and streams
@@ -66,13 +76,17 @@ public class WebProxyThread extends Thread {
                 clientOut.close();
                 serverOut.close();
                 responseStream.close();
+
+                server.close();
+                connectionSocket.close();
+
             }
             else {
                 clientOut.close();
             }
         }
         catch (IOException e) {
-            //e.printStackTrace();
+            e.printStackTrace();
         }
     }
 }

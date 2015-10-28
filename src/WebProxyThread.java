@@ -27,34 +27,38 @@ public class WebProxyThread extends Thread {
             BufferedReader br = new BufferedReader(reader);
             String msg;
             String close = "Connection: close";
-            String directory = "";
+            String absoluteURL = "";
             String host = "";
+            String directory = "";
 
             while((msg = br.readLine()) != null && !msg.isEmpty()) {
                 if(msg.contains("keep-alive")) {
                     builder.append(close);
+                    builder.append("\r\n");
+                }
+                else if(msg.contains("GET")) {
+                    String[] split = msg.split(" ");
+                    absoluteURL = split[1];
                 }
                 else if(msg.contains("Host:")) {
                     String[] split = msg.split(" ");
                     host = split[1];
                     builder.append(msg);
+                    builder.append("\r\n");
                 }
                 else {
                     builder.append(msg);
+                    builder.append("\r\n");
                 }
-                builder.append("\r\n");
             }
             builder.append("\r\n");
 
             System.out.println("HOST: " + host);
+            directory = absoluteURL.substring(HTTP_LENGTH + host.length());
+            builder.insert(0, ("GET " + directory + " HTTP/1.1" + "\r\n"));
 
             String strRequest = builder.toString();
             byte[] arr = strRequest.getBytes();
-            int length = arr.length;
-//            System.out.println("SIZE: " + length);
-//
-//            System.out.println("REQUEST: " + "\n");
-//            System.out.println(strRequest);
 
             server = new Socket(host, 80);
 

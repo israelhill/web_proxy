@@ -135,7 +135,6 @@ public class proxyd {
             }
             finally {
                 try {
-                    System.out.println("Closing connection socket.");
                     connectionSocket.close();
                 }
                 catch (IOException e) {

@@ -13,6 +13,7 @@ public class proxyd {
         System.out.println("Listening on port " + PORT);
 
         try {
+            // create a socket listening on the specified port
             connection = new ServerSocket(PORT);
             System.out.println("Listening for requests from browser");
         }
@@ -22,6 +23,7 @@ public class proxyd {
             System.exit(-1);
         }
 
+        // listen on this port forever
         while(true) {
             try {
                 new WebProxyThread(connection.accept()).start();
@@ -50,15 +52,18 @@ public class proxyd {
                 final InputStream clientIn = connectionSocket.getInputStream();
                 final OutputStream clientOut = connectionSocket.getOutputStream();
 
+                // read the request from the client
                 StringBuilder builder = new StringBuilder();
                 InputStreamReader reader = new InputStreamReader(clientIn);
                 BufferedReader br = new BufferedReader(reader);
+
                 String msg;
                 String close = "Connection: close";
                 String absoluteURL = "";
                 String host = "";
                 String directory = "";
 
+                // modify the request. remove keep-alive to disallow persistent connections
                 while((msg = br.readLine()) != null && !msg.isEmpty()) {
                     if(msg.contains("keep-alive")) {
                         builder.append(close);
@@ -81,28 +86,30 @@ public class proxyd {
                 }
                 builder.append("\r\n");
 
-                System.out.println("HOST: " + host);
+                // get directory from the url
                 directory = absoluteURL.substring(HTTP_LENGTH + host.length());
+                // add GET line back to request with relative path
                 builder.insert(0, ("GET " + directory + " HTTP/1.1" + "\r\n"));
 
                 String strRequest = builder.toString();
-                byte[] arr = strRequest.getBytes();
+                byte[] requestBytes = strRequest.getBytes();
 
-
+                // get the host address from the DNS cache
+                // create socket to talk to the host
                 InetAddress hostAddress = checkCache(host);
                 server = new Socket(hostAddress, 80);
 
                 //write request to the host via server socket
                 OutputStream serverOut = server.getOutputStream();
-                serverOut.write(arr);
+                serverOut.write(requestBytes);
 
-                String requestToHost = new String(arr);
+                String requestToHost = new String(requestBytes);
                 serverOut.flush();
-                System.out.println("REQUEST TO HOST: " + "\n" + requestToHost);
 
-                //copy response from the host via server socket
+                //get response from the host via server socket
                 InputStream responseStream = server.getInputStream();
 
+                // write response back to the client
                 int res = responseStream.read();
                 try {
                     while(res != -1) {
@@ -112,7 +119,6 @@ public class proxyd {
                     }
                 }
                 catch(IOException e) {
-                    System.out.println("ERROR:" + "\n");
                     e.printStackTrace();
                 }
 
@@ -125,7 +131,6 @@ public class proxyd {
                 server.close();
             }
             catch (IOException e) {
-                System.out.println("ERROR:" + "\n");
                 e.printStackTrace();
             }
             finally {
@@ -151,6 +156,7 @@ public class proxyd {
                 return dnsCache.get(hostName);
             }
             else {
+                // add the DNS record to the cache
                 InetAddress hostAddress = InetAddress.getByName(hostName);
                 dnsCache.put(hostName, hostAddress);
 
@@ -162,7 +168,7 @@ public class proxyd {
 
 
         /**
-         * Creates a thread that will delete dns records from has table.
+         * Creates a thread that will delete DNS records from hash table.
          * Thread will sleep for 30 seconds, awaken, then delete the record.
          */
         private static class CacheTimeoutThread extends Thread {

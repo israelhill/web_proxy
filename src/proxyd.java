@@ -92,6 +92,7 @@ public class proxyd {
                 builder.insert(0, ("GET " + directory + " HTTP/1.1" + "\r\n"));
 
                 String strRequest = builder.toString();
+                System.out.print("REQUEST: \n" + strRequest);
                 byte[] requestBytes = strRequest.getBytes();
 
                 // get the host address from the DNS cache
